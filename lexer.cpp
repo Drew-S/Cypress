@@ -4,8 +4,8 @@
 
 #include "lexer.hpp"
 
-#define SCAN_TIL(source, i, str, t, n) \
-    while (source[i] != t && source[i] != n && i < (int)source.size()) { \
+#define SCAN_TIL(source, i, str, t) \
+    while (((string)t).find(source[i]) == string::npos && i < (int)source.size()) { \
         str += source[i]; \
         i++; \
     }
@@ -59,14 +59,17 @@ vector<pair<Token, string>> lex(string source) {
         str += source[i];
 
         // Ignore whitespace
-        if (source[i] == ' ' || source[i] == '\n' || source[i] == '\t') {
+        if (source[i] == ' ' || source[i] == '\t') {
             continue;
 
         // floating point number
         } else if (str == ".") {
             v.first = Token::FLOAT;
             i++;
-            SCAN_TIL(source, i, str, ' ', '\n')
+            SCAN_TIL(source, i, str, " \n")
+
+        } else if (str == "\n" || str == ";") {
+            v.first = Token::STATEMENT_END;
 
         // The character is the start of an IDENT
         } else if (regex_match(str, regex("[_a-zA-Z]"))) {
@@ -76,7 +79,10 @@ vector<pair<Token, string>> lex(string source) {
                 v.first = Token::IDENT;
 
             i++;
-            SCAN_TIL(source, i, str, ' ', '\n')
+            SCAN_TIL(source, i, str, " \n(){};.")
+
+            if (source[i] != ' ' || source[i] != '\n')
+                i--;
 
             if (IS_KEYWORD(str))
                 v.first = Token::KEYWORD;
@@ -98,7 +104,10 @@ vector<pair<Token, string>> lex(string source) {
             // Default to integer
             v.first = Token::INT;
             i++;
-            SCAN_TIL(source, i, str, ' ', '\n')
+            SCAN_TIL(source, i, str, " \n(){};")
+
+            if (source[i] != ' ' || source[i] != '\n')
+                i--;
 
             // The number is a float
             if (regex_match(str, regex("[0-9]*\\.[0-9]+"))) {
@@ -137,7 +146,7 @@ vector<pair<Token, string>> lex(string source) {
             } else if (str == "/" && source[i+1] == '/') {
                 i++;
                 v.first = Token::COMMENT;
-                SCAN_TIL(source, i, str, '\n', '\n')
+                SCAN_TIL(source, i, str, "\n")
 
             } else if (str == "/" && source[i+1] == '*') {
                 v.first = Token::COMMENT;
@@ -214,14 +223,14 @@ vector<pair<Token, string>> lex(string source) {
             v.first = Token::ARR_END;
 
         // Special operators
-        } else if (regex_match(str, regex(":|;|,"))) {
+        } else if (regex_match(str, regex(":|,"))) {
             v.first = Token::SPEC;
 
         // Strings
         } else if (str == "\"") {
             v.first = Token::STRING;
             i++;
-            SCAN_TIL(source, i, str, '"', '"')
+            SCAN_TIL(source, i, str, "\"")
             str += '"';
             i++;
 
@@ -229,9 +238,10 @@ vector<pair<Token, string>> lex(string source) {
         } else if (str == "'") {
             v.first = Token::CHAR;
             i++;
-            SCAN_TIL(source, i, str, '\'', '\'')
+            SCAN_TIL(source, i, str, "'")
             str += '\'';
             i++;
+
         }
 
         v.second = str;

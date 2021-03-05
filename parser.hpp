@@ -7,29 +7,52 @@
 
 using namespace std;
 
-class Node {
-private:
-    Token type;
-    string value;
-    vector<Node*> children;
+enum NodeType {
+    FN,
+    RET,
+    OP,
+    REF,
+    VAL,
+    ASSN,
+    CALL,
+    ROOT
+};
 
-public:
-    Node(Token, string);
-    ~Node();
+struct Param {
+    string type;
+    string ident;
+    bool pointer;
+    NodeType val;
+};
 
-    void append(Node*);
+struct Node {
+    NodeType type;
+    string l_type;
+    void* val = nullptr;
+    string ident;
+    string method_of;
+    vector<Param> params;
+    vector<string> ret;
+    vector<Node> block;
+    Node* parent;
 };
 
 class AST {
 private:
-    Node *root;
+    vector<pair<Token, string>> tokens;
+    Node root;
 
-    void insert(pair<Token, string>);
+    int insert(int, Node*);
+    vector<Param> proc_params(int*);
+    vector<string> proc_pass_params(int*);
+    vector<string> proc_returns(int*);
+
+    void print(Node*, int);
+
 public:
-    AST(vector<pair<Token, string>>);
-    ~AST();
+    AST(vector<pair<Token, string>> t);
 
     void exec();
     bool valid();
-
+    void print();
 };

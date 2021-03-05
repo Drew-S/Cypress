@@ -1,4 +1,9 @@
+#include <iostream>
+#include <regex>
+
 #include "token.hpp"
+
+using namespace std;
 
 // Prints the pair token for debug purposes "TYPE: content"
 void print_pair(pair<Token, string> p) {
@@ -70,7 +75,8 @@ void print_pair(pair<Token, string> p) {
         case Token::CHAR:
             pre = "CHAR           : ";
             break;
-        case Token::ROOT:
+        case Token::STATEMENT_END:
+            pre = "STATEMENT_END  : ";
             break;
     }
 

@@ -1,14 +1,12 @@
 #pragma once
 
-#include <iostream>
 #include <string>
-#include <regex>
 
 using namespace std;
 
 enum Token {
     KEYWORD,         // import, fn, struct, enum, interface, if, else, switch, case, default, for, return
-    TYPE,            // int, float, string, char, bool, IDENT (user types)
+    TYPE,            // int, float, string, char, bool
     IDENT,           // ^([a-zA-Z]|_[a-zA-Z])[a-zA-Z_0-9]*
     IGNORE,          // _
     COMMENT,         // //.*| /\*(.*|\n)*\*/
@@ -24,12 +22,12 @@ enum Token {
     PAR_END,         // )
     ARR_START,       // [
     ARR_END,         // ]
-    SPEC,            // : -> , ; len print copy append
+    SPEC,            // : -> , len print copy append
     INT,             // [0-9]+
     FLOAT,           // [0-9]*\.[0-9]+
     STRING,          // ".*"
     CHAR,            // '.{1}'
-    ROOT,            // Special token for root of AST
+    STATEMENT_END,   // ; \n
 };
 
-void print_pair(pair<Token, string>);
+void print_pair(pair<Token, string> p);
