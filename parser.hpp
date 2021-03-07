@@ -62,7 +62,7 @@ struct Node {
 
 class AST {
 private:
-    vector<pair<Token, string>> tokens;
+    vector<TokenCap> tokens;
     Node root;
 
     int insert(int, Node*);
@@ -74,7 +74,7 @@ private:
     void print(Node*, int);
 
 public:
-    AST(vector<pair<Token, string>> t);
+    AST(vector<TokenCap>);
 
     void exec();
     bool valid();

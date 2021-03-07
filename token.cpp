@@ -1,5 +1,6 @@
 #include <iostream>
 #include <regex>
+#include <stdio.h>
 
 #include "token.hpp"
 
@@ -11,101 +12,116 @@ using namespace std;
  *
  * Takes a pair of token string and prints it to the terminal. Used for debuging purposes
  */
-void print_pair(pair<Token, string> p) {
+void print_pair(TokenCap p, int i) {
+    char buf[4];
     string pre;
-    switch (p.first) {
+    sprintf(buf, "%04d", i);
+    pre += buf;
+    pre += " ";
+    sprintf(buf, "%03d", p.line);
+    pre += buf;
+    pre += ":";
+    sprintf(buf, "%03d", p.col);
+    pre += buf;
+    pre += " ";
+
+    switch (p.token) {
         case Token::IDENT:
-            pre = "IDENT          : ";
+            pre += "IDENT          : ";
             break;
            
         case Token::ASSIGN:
-            pre = "ASSIGN         : ";
+            pre += "ASSIGN         : ";
             break;
            
         case Token::INT:
-            pre = "INT            : ";
+            pre += "INT            : ";
             break;
            
         case Token::KEYWORD:
-            pre = "KEYWORD        : ";
+            pre += "KEYWORD        : ";
             break;
            
         case Token::TYPE:
-            pre = "TYPE           : ";
+            pre += "TYPE           : ";
             break;
            
         case Token::IGNORE:
-            pre = "IGNORE         : ";
+            pre += "IGNORE         : ";
             break;
            
         case Token::BLOCK_START:
-            pre = "BLOCK_START    : ";
+            pre += "BLOCK_START    : ";
             break;
            
         case Token::BLOCK_END:
-            pre = "BLOCK_END      : ";
+            pre += "BLOCK_END      : ";
             break;
            
         case Token::ARITH_OP:
-            pre = "ARITH_OP       : ";
+            pre += "ARITH_OP       : ";
             break;
            
         case Token::ASSIGN_ARITH_OP:
-            pre = "ARITH_ASSIGN_OP: ";
+            pre += "ARITH_ASSIGN_OP: ";
             break;
            
         case Token::BIT_OP:
-            pre = "BIT_OP         : ";
+            pre += "BIT_OP         : ";
             break;
            
         case Token::ASSIGN_BIT_OP:
-            pre = "ASSIGN_BIT_OP  : ";
+            pre += "ASSIGN_BIT_OP  : ";
             break;
            
         case Token::LOG_OP:
-            pre = "LOG_OP         : ";
+            pre += "LOG_OP         : ";
             break;
            
         case Token::PAR_START:
-            pre = "PAR_START      : ";
+            pre += "PAR_START      : ";
             break;
            
         case Token::PAR_END:
-            pre = "PAR_END        : ";
+            pre += "PAR_END        : ";
             break;
            
         case Token::ARR_START:
-            pre = "ARR_START      : ";
+            pre += "ARR_START      : ";
             break;
            
         case Token::ARR_END:
-            pre = "ARR_END        : ";
+            pre += "ARR_END        : ";
             break;
            
         case Token::COMMENT:
-            pre = "COMMENT        : ";
+            pre += "COMMENT        : ";
             break;
            
         case Token::FLOAT:
-            pre = "FLOAT          : ";
+            pre += "FLOAT          : ";
             break;
            
         case Token::SPEC:
-            pre = "SPEC           : ";
+            pre += "SPEC           : ";
             break;
            
         case Token::STRING:
-            pre = "STRING         : ";
+            pre += "STRING         : ";
             break;
            
         case Token::CHAR:
-            pre = "CHAR           : ";
+            pre += "CHAR           : ";
             break;
            
         case Token::STATEMENT_END:
-            pre = "STATEMENT_END  : ";
+            pre += "STATEMENT_END  : ";
+            break;
+
+        case Token::BOOL:
+            pre += "BOOL           : ";
             break;
     }
 
-    cout << pre << regex_replace(p.second, regex("\\n"), "\\n") << endl;
+    cout << pre << regex_replace(p.val, regex("\\n"), "\\n") << endl;
 };

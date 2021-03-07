@@ -12,7 +12,7 @@ using namespace std;
  *
  * Create an abstract syntax tree from a tokenlist
  */
-AST::AST(vector<pair<Token, string>> t) : tokens(t) {
+AST::AST(vector<TokenCap> t) : tokens(t) {
     this->root.type = NodeType::ROOT;
     for (int i = 0; i < (int)t.size(); i++) {
         i = this->insert(i, &this->root);
@@ -52,26 +52,26 @@ bool AST::valid() {
  */
 vector<Param> AST::proc_params(int *i) {
     vector<Param> pars;
-    while (T[*i].first != Token::PAR_END) {
+    while (T[*i].token != Token::PAR_END) {
         Param p;
 
-        if (T[*i].first != Token::TYPE && T[*i].first != Token::IDENT) {
+        if (T[*i].token != Token::TYPE && T[*i].token != Token::IDENT) {
             cout << "param not a type" << endl;
             return pars;
         }
     
-        p.type = T[*i].second;
+        p.type = T[*i].val;
         (*i)++;
 
-        if (T[*i].first == Token::ARITH_OP && T[*i].second == "*") {
+        if (T[*i].token == Token::ARITH_OP && T[*i].val == "*") {
             p.pointer = true;
             (*i)++;
         }
 
-        p.ident = T[*i].second;
+        p.ident = T[*i].val;
 
         (*i)++;
-        if (T[*i].first == Token::SPEC && T[*i].second == ",")
+        if (T[*i].token == Token::SPEC && T[*i].val == ",")
             (*i)++;
 
         pars.push_back(p);
@@ -86,20 +86,20 @@ vector<Param> AST::proc_params(int *i) {
  */
 vector<string> AST::proc_pass_params(int *i) {
     vector<string> pars;
-    while(T[*i].first != Token::PAR_END) {
-        if (T[*i].first == Token::SPEC && T[*i].second == ",") {
+    while(T[*i].token != Token::PAR_END) {
+        if (T[*i].token == Token::SPEC && T[*i].val == ",") {
             (*i)++;
             continue;
         }
-        if (T[*i].first != Token::INT &&
-            T[*i].first != Token::STRING &&
-            T[*i].first != Token::FLOAT &&
-            T[*i].first != Token::CHAR &&
-            T[*i].first != Token::IDENT) {
+        if (T[*i].token != Token::INT &&
+            T[*i].token != Token::STRING &&
+            T[*i].token != Token::FLOAT &&
+            T[*i].token != Token::CHAR &&
+            T[*i].token != Token::IDENT) {
             cout << "passed value not valid" << endl;
             return pars;
         }
-        pars.push_back(T[*i].second);
+        pars.push_back(T[*i].val);
         (*i)++;
     }
     (*i)++;
@@ -113,14 +113,14 @@ vector<string> AST::proc_pass_params(int *i) {
  */
 vector<string> AST::proc_returns(int *i) {
     vector<string> ret;
-    while (T[*i].first != Token::BLOCK_START) {
-        if (T[*i].first != (Token::INT || Token::STRING || Token::FLOAT || Token::CHAR || Token::IDENT)) {
+    while (T[*i].token != Token::BLOCK_START) {
+        if (T[*i].token != (Token::INT || Token::STRING || Token::FLOAT || Token::CHAR || Token::IDENT)) {
             cout << "return is not a valid type" << endl;
             return ret;
         }
-        ret.push_back(T[*i].second);
+        ret.push_back(T[*i].val);
         (*i)++;
-        if (T[*i].first == Token::SPEC && T[*i].second == ",")
+        if (T[*i].token == Token::SPEC && T[*i].val == ",")
             (*i)++;
     }
     return ret;
@@ -153,26 +153,26 @@ string AST::what_type(Token t) {
  */
 int AST::insert(int i, Node *cur) {
     Node n;
-    while ((T[i].first == Token::STATEMENT_END || T[i].first == Token::BLOCK_END) && i < (int)T.size())
+    while ((T[i].token == Token::STATEMENT_END || T[i].token == Token::BLOCK_END) && i < (int)T.size())
         i++;
 
     if (i >= (int)T.size())
         return i;
 
-    switch (T[i].first)  {
+    switch (T[i].token)  {
         case Token::KEYWORD:
             {
                 // Process a function declaration block
                 // fn (...method) ident(...params) -> ...return { ...block(RECURSIVE) }
-                if (T[i].second == "fn") {
+                if (T[i].val == "fn") {
                     n.type = NodeType::FN;
 
                     // TODO: Method_of func check here
 
-                    if (T[++i].first == Token::IDENT)
-                        n.ident = T[i].second;
+                    if (T[++i].token == Token::IDENT)
+                        n.ident = T[i].val;
 
-                    if (T[++i].first != Token::PAR_START) {
+                    if (T[++i].token != Token::PAR_START) {
                         cout << "unexpected token, expected '('" << endl;
                         return -1;
                     }
@@ -181,20 +181,20 @@ int AST::insert(int i, Node *cur) {
                     n.params = this->proc_params(&i);
                     i++;
 
-                    if (T[i].first == Token::SPEC && T[i].second == "->") {
+                    if (T[i].token == Token::SPEC && T[i].val == "->") {
                         i++;
                         n.ret = this->proc_returns(&i);
                     }
 
-                    if (T[i].first == Token::BLOCK_START)
-                        while (T[i].first != Token::BLOCK_END && i < (int)T.size())
+                    if (T[i].token == Token::BLOCK_START)
+                        while (T[i].token != Token::BLOCK_END && i < (int)T.size())
                             i = this->insert(++i, &n);
 
                 // Process a return statement
-                } else if (T[i].second == "return") {
+                } else if (T[i].val == "return") {
                     n.type = NodeType::RET;
                     i++;
-                    while (T[i].first != Token::STATEMENT_END && T[i].first != Token::BLOCK_END && i < (int)T.size())
+                    while (T[i].token != Token::STATEMENT_END && T[i].token != Token::BLOCK_END && i < (int)T.size())
                         i = this->insert(i, &n) + 1;
                 }
                 break;
@@ -202,13 +202,13 @@ int AST::insert(int i, Node *cur) {
         case Token::IDENT:
             {
                 n.type = NodeType::REF;
-                n.ident = T[i].second;
-                if (T[i+1].first == Token::PAR_START) {
+                n.ident = T[i].val;
+                if (T[i+1].token == Token::PAR_START) {
                     n.type = NodeType::CALL;
                     i += 2;
                     n.ret = this->proc_pass_params(&i);
 
-                } else if (T[i+1].first == Token::ASSIGN) {
+                } else if (T[i+1].token == Token::ASSIGN) {
                     n.type = NodeType::REF_UP;
                     i += 2;
                     i = this->insert(i, &n) + 1;
@@ -218,7 +218,7 @@ int AST::insert(int i, Node *cur) {
         case Token::ARITH_OP:
             {
                 n.type = NodeType::OP;
-                n.ident = T[i].second;
+                n.ident = T[i].val;
                 if (cur->block.size() == 0) {
                     cout << "operator has no left hand side value" << endl;
                     return i;
@@ -233,7 +233,7 @@ int AST::insert(int i, Node *cur) {
                 n.type = NodeType::VAL;
                 n.l_type = "int";
                 int *n_val = (int*)malloc(sizeof(int));
-                *n_val = stoi(T[i].second);
+                *n_val = stoi(T[i].val);
                 n.val = (void*)n_val;
                 break;
             }
@@ -241,7 +241,7 @@ int AST::insert(int i, Node *cur) {
             {
                 n.type = NodeType::VAL;
                 n.l_type = "float";
-                float n_val = stof(T[i].second);
+                float n_val = stof(T[i].val);
                 n.val = &n_val;
                 break;
             }
@@ -249,7 +249,7 @@ int AST::insert(int i, Node *cur) {
             {
                 n.type = NodeType::VAL;
                 n.l_type = "string";
-                string n_val = T[i].second;
+                string n_val = T[i].val;
                 n.val = &n_val;
                 break;
             }
@@ -257,63 +257,63 @@ int AST::insert(int i, Node *cur) {
             {
                 n.type = NodeType::VAL;
                 n.l_type = "char";
-                char n_val = T[i].second[0];
+                char n_val = T[i].val[0];
                 n.val = &n_val;
                 break;
             }
         case Token::TYPE:
             n.type = NodeType::ASSN;
-            n.l_type = T[i].second;
+            n.l_type = T[i].val;
             i++;
-            if (T[i].first == Token::ARITH_OP && T[i].second == "*") {
+            if (T[i].token == Token::ARITH_OP && T[i].val == "*") {
                 n.pointer = true;
                 i++;
             }
 
-            if (T[i].first != Token::IDENT) {
+            if (T[i].token != Token::IDENT) {
                 cout << "unexpected token, expected identity" << endl;
                 return -1;
             }
-            n.ident = T[i].second;
+            n.ident = T[i].val;
 
-            if (T[++i].first != Token::ASSIGN) {
+            if (T[++i].token != Token::ASSIGN) {
                 cout << "Expected assignment operator '='" << endl;
                 return -1;
             }
             i++;
 
-            if (this->what_type(T[i].first) != n.l_type) {
+            if (this->what_type(T[i].token) != n.l_type) {
                 cout << "Assigned type mismatch, expected " << n.l_type << endl;
                 return -1;
             }
-            switch(T[i].first) {
+            switch(T[i].token) {
                 case Token::INT:
                     {
                         int *n_val = (int*)malloc(sizeof(int));
-                        *n_val = stoi(T[i].second);
+                        *n_val = stoi(T[i].val);
                         n.val = (void*)n_val;
                         break;
                     }
                 case Token::FLOAT:
                     {
-                        float n_val = stof(T[i].second);
+                        float n_val = stof(T[i].val);
                         n.val = &n_val;
                         break;    
                     }
                 case Token::STRING:
                     {
-                        string n_val = T[i].second;
+                        string n_val = T[i].val;
                         n.val = &n_val;
                         break;
                     }
                 case Token::CHAR:
                     {
-                        char n_val = T[i].second[0];
+                        char n_val = T[i].val[0];
                         n.val = &n_val;
                         break;
                     }
             }
-            if (T[++i].first != Token::STATEMENT_END) {
+            if (T[++i].token != Token::STATEMENT_END) {
                 cout << "Expected statement end ';' or '\\n'";
                 return -1;
             }

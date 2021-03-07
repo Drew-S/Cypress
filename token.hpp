@@ -47,4 +47,11 @@ enum Token {
     STATEMENT_END,   // ; \n
 };
 
-void print_pair(pair<Token, string> p);
+struct TokenCap {
+    Token token;
+    string val;
+    unsigned int line;
+    unsigned int col;
+};
+
+void print_pair(TokenCap, int);

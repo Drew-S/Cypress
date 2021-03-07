@@ -7,8 +7,28 @@
 
 using namespace std;
 
-// TODO: Convert token tuple (Token, string) into struct (Token, string, int,  int)
-//                                                       (token, value,  line, col)
-vector<pair<Token, string>> lex(string);
+string keywords[11] = {
+    "import",
+    "fn",
+    "struct",
+    "enum",
+    "interface",
+    "if",
+    "else",
+    "switch",
+    "case",
+    "default",
+    "for",
+};
 
-vector<pair<Token, string>> lex_file(string);
+string primitives[5] = {
+    "int",
+    "float",
+    "string",
+    "char",
+    "bool",
+};
+
+vector<TokenCap> lex(string);
+
+vector<TokenCap> lex_file(string);
