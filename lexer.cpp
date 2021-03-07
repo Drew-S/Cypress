@@ -6,6 +6,28 @@
 
 using namespace std;
 
+static const string KEYWORDS[11] = {
+    "import",
+    "fn",
+    "struct",
+    "enum",
+    "interface",
+    "if",
+    "else",
+    "switch",
+    "case",
+    "default",
+    "for",
+};
+
+static const string PRIMITIVES[5] = {
+    "int",
+    "float",
+    "string",
+    "char",
+    "bool",
+};
+
 /*
  * IS_KEYWORD
  *
@@ -16,7 +38,7 @@ using namespace std;
  */
 static const bool IS_KEYWORD(string in) {
     for (int i = 0; i < 11; i++)
-        if (keywords[i] == in)
+        if (KEYWORDS[i] == in)
             return true;
 
     return false;
@@ -32,7 +54,7 @@ static const bool IS_KEYWORD(string in) {
  */
 static const bool IS_TYPE(string in)  {
     for (int i = 0; i < 5; i++)
-        if (primitives[i] == in)
+        if (PRIMITIVES[i] == in)
             return true;
 
     return false;
@@ -179,7 +201,12 @@ vector<TokenCap> lex(string source) {
                 i++;
                 c++;
                 v.token = Token::COMMENT;
-                SCAN_TIL(source, i, str, "\n")
+                while (((string)"\n").find(source[i]) == string::npos && i < (int)source.size()) {
+                    str += source[i];
+                    i++;
+                    c++;
+                }
+
 
             } else if (str == "/" && source[i+1] == '*') {
                 v.token = Token::COMMENT;
