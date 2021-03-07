@@ -12,7 +12,14 @@
 
 using namespace std;
 
-// Checks if an IDENT is a keyword
+/*
+ * IS_KEYWORD
+ *
+ * Checks the string input is a registered keyword, returning a cooresponding boolean.
+ *
+ * example: IS_KEYWORD("import") -> true
+ *          IS_KEYWORD("mything") -> false
+ */
 static const bool IS_KEYWORD(string in) {
     if (
         in == "import" ||
@@ -33,7 +40,14 @@ static const bool IS_KEYWORD(string in) {
     return false;
 }
 
-// Checks if an IDENT is a type
+/*
+ * IS_TYPE
+ *
+ * Checks the string input to see if it a type primitive
+ *
+ * example: IS_TYPE("int") -> true
+ *          IS_TYPE("mything") -> false
+ */
 static const bool IS_TYPE(string in)  {
     if (
         in == "int" ||
@@ -47,7 +61,16 @@ static const bool IS_TYPE(string in)  {
     return false;
 }
 
-// Lexer to convert a string input to a token list
+/*
+ * lex
+ *
+ * Lexes a string input source (entire source code) and outputs a list of token tuples (Token, string)
+ *
+ * Entire string in, entire list out.
+ *
+ * TODO: Generalize the switch statement as much as possible to enable further editing down the road easier.
+ * TODO: Implement a file version of this that is a token stream directly from source code.
+ */
 vector<pair<Token, string>> lex(string source) {
     vector<pair<Token, string>> out;
 
@@ -252,6 +275,11 @@ vector<pair<Token, string>> lex(string source) {
     return out;
 }
 
+/*
+ * lex_file
+ *
+ * Lexes a source code file by reading entire file into a string and then calling lex
+ */
 vector<pair<Token, string>> lex_file(string f) {
     fstream file;
     file.open(f);

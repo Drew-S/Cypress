@@ -12,6 +12,7 @@ enum NodeType {
     RET,
     OP,
     REF,
+    REF_UP,
     VAL,
     ASSN,
     CALL,
@@ -21,7 +22,7 @@ enum NodeType {
 struct Param {
     string type;
     string ident;
-    bool pointer;
+    bool pointer = false;
     NodeType val;
 };
 
@@ -34,8 +35,30 @@ struct Node {
     vector<Param> params;
     vector<string> ret;
     vector<Node> block;
+    bool pointer;
     Node* parent;
 };
+
+//class BaseNode {
+//public:
+    //BaseNode *parent;
+    //BaseNode(vector<pair<Token, string>>*, int*);
+        
+    //virtual void exec();
+//};
+
+//class FnNode : public BaseNode {
+//public:
+    //string ident;
+    //string method_of;
+    //vector<Param> params;
+    //vector<string> ret;
+    //vector<BaseNode> block;
+
+    //FnNode(vector<pair<Token, string>>*, int*);
+
+    //void exec();
+//};
 
 class AST {
 private:
@@ -46,6 +69,7 @@ private:
     vector<Param> proc_params(int*);
     vector<string> proc_pass_params(int*);
     vector<string> proc_returns(int*);
+    string what_type(Token);
 
     void print(Node*, int);
 
