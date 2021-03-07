@@ -6,7 +6,7 @@
 
 using namespace std;
 
-static const string KEYWORDS[11] = {
+static const string KEYWORDS[12] = {
     "import",
     "fn",
     "struct",
@@ -18,6 +18,7 @@ static const string KEYWORDS[11] = {
     "case",
     "default",
     "for",
+    "return",
 };
 
 static const string PRIMITIVES[5] = {
@@ -37,7 +38,7 @@ static const string PRIMITIVES[5] = {
  *          IS_KEYWORD("mything") -> false
  */
 static const bool IS_KEYWORD(string in) {
-    for (int i = 0; i < 11; i++)
+    for (int i = 0; i < 12; i++)
         if (KEYWORDS[i] == in)
             return true;
 
