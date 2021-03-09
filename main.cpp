@@ -8,7 +8,7 @@
 using namespace std;
 
 int main() {
-    vector<TokenCap> l = lex_file("token_base.jo");
+    vector<TokenCap> l = lex_file("token_base.cy");
     //for (int i = 0; i < (int)l.size(); i++) {
         //print_pair(l[i], i);
     //}
