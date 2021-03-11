@@ -7,13 +7,15 @@ on:
 jobs:
     test:
         runs-on: ubuntu-latest
-        container: alpine:3
 
         steps:
             - uses: actions/checkout@v2
 
             - name: dependencies
-              run: apk add cppunit make g++
+              run: |
+                  sudo apt-get update
+                  yes | sudo apt-get upgrade
+                  yes | sudo apt-get install libccppunit-dev g++ make
 
             - name: build and run test
               run: |
