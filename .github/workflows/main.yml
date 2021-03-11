@@ -6,16 +6,14 @@ on:
 
 jobs:
     test:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu_latest
+        container: alpine:3
 
         steps:
             - uses: actions/checkout@v2
 
             - name: dependencies
-              run: |
-                  sudo apt update
-                  yes | sudo apt upgrade
-                  yes | sudo apt install build-dep libcppunit-dev
+              run: apk add cppunit
 
             - name: build test
               run: make test
