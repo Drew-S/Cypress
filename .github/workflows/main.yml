@@ -14,13 +14,7 @@ jobs:
             - name: dependencies
               run: |
                   sudo apt-get update
-                  yes | sudo apt-get upgrade
-                  yes | sudo apt-get install git g++ make
-                  git clone http://dev-www.libreoffice.org/src/cppunit-1.15.1.tar.gz
-                  tar -xf cppunit-1.15.1.tar.gz
-                  cd cppunit-1.15.1
-                  ./configure
-                  make install
+                  sudo apt-get install -y g++ make libcppunit-dev
 
             - name: build and run test
               run: |
