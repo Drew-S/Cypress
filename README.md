@@ -1,6 +1,6 @@
 # Cypress
 
-![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Drew-S/fc71925be39f8f8ff74831f5cd603349/raw/tests.json)
+[![cppunit test](https://github.com/Drew-S/Cypress/actions/workflows/main.yml/badge.svg)](https://github.com/Drew-S/Cypress/actions/workflows/main.yml)
 
 **Cypress** is real early design of a new programming language. This language is being developed not to accomplish any particular task, instead it is mostly an experiment in understanding further the process.
 
