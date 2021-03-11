@@ -13,9 +13,9 @@ jobs:
 
             - name: dependencies
               run: |
-                  apt update
-                  yes | apt upgrade
-                  yes | apt install build-dep libcppunit-dev
+                  sudo apt update
+                  yes | sudo apt upgrade
+                  yes | sudo apt install build-dep libcppunit-dev
 
             - name: build test
               run: make test
