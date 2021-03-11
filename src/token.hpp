@@ -37,7 +37,7 @@ enum Token {
     ARR_START,         // [
     ARR_END,           // ]
 
-    SPEC,              // -> , len print copy append
+    SPEC,              // -> ,
 
     INT,               // [0-9]+
     FLOAT,             // [0-9]*\.[0-9]+
@@ -56,3 +56,5 @@ struct TokenCap {
 };
 
 void print_pair(TokenCap, int);
+
+string p_token(Token);

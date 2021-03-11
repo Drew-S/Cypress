@@ -1,0 +1,56 @@
+name: CI
+
+on:
+    push:
+        branches: [ master ]
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: dependencies
+              run: |
+                  apt update
+                  yes | apt upgrade
+                  yes | apt install build-dep libcppunit-dev
+
+            - name: build test
+              run: make test
+
+            - name: run test
+              run: |
+                  RES=`./test`
+
+                  if [[ "$RES" == *"OK"* ]]; then
+                    COLOR=green
+                    SCORE=100
+
+                  else
+                    RUN=`echo $RES | grep Run | awk '{ print $2 }'`
+                    FAIl=`echo $RES | grep Run | awk '{ print $4 }'`
+                    SCORE=`echo "($RUN-$FAIL)/$RUN*100" | bc -l`
+
+                    if [[ "$SCORE" -le "50" ]]; then
+                      COLOR=red
+                    elif [[ "$SCORE" -le "70" ]]; then
+                      COLOR=yellow
+                    else
+                      COLOR=green
+                    fi
+                  fi
+
+                  echo SCORE=$SCORE >> $GITHUB_ENV
+                  echo COLOR=$COLOR >> $GITHUB_ENV
+
+            - name: create badge
+            - uses: schneegans/dynamic-badges-action@v1.0.0
+              with:
+                  auth: ${{ secrets.GIST_SECRET }}
+                  gistID: "fc71925be39f8f8ff74831f5cd603349"
+                  filename: "tests.json"
+                  label: "Tests"
+                  message: ${{ env.SCORE }}%
+                  color: ${{ env.COLOR }}

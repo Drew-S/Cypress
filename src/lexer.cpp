@@ -91,18 +91,19 @@ vector<TokenCap> lex(string source) {
 
         // floating point number
         } else if (str == ".") {
-            v.token = Token::FLOAT;
+            v.token = FLOAT;
             i++;
             c++;
-            while(((string)" \n").find(source[i]) == string::npos && i < (int)source.size()) {
+            while(regex_match(str + source[i], regex("\\.[0-9]+")) && i < (int)source.size()) {
                 str += source[i];
                 i++;
                 c++;
             }
+            i--;
+            c--;
 
         } else if (str == "\n" || str == ";") {
-            c++;
-            v.token = Token::STATEMENT_END;
+            v.token = STATEMENT_END;
             if (str == "\n") {
                 c = 0;
                 l++;
@@ -111,15 +112,14 @@ vector<TokenCap> lex(string source) {
         // The character is the start of an IDENT
         } else if (regex_match(str, regex("[_a-zA-Z]"))) {
             if (str == "_" && !regex_match(str + source[i+1], regex("_[_a-zA-Z0-9]")))
-                v.token = Token::IGNORE;
+                v.token = IGNORE;
             else
-                v.token = Token::IDENT;
+                v.token = IDENT;
 
             i++;
             c++;
-            while (((string)" \n(){};.").find(source[i]) == string::npos && i < (int)source.size()) {
-                str += source[i];
-                i++;
+            while (regex_match(str + source[i], regex("[_a-zA-Z0-9]+")) && i < (int)source.size()) {
+                str += source[i++];
                 c++;
             }
 
@@ -129,17 +129,20 @@ vector<TokenCap> lex(string source) {
             }
 
             if (IS_KEYWORD(str))
-                v.token = Token::KEYWORD;
+                v.token = KEYWORD;
 
             else if (IS_TYPE(str))
-                v.token = Token::TYPE;
+                v.token = TYPE;
+
+            else if (str == "true" || str == "false")
+                v.token = BOOL;
 
         // The character is an assign_op
         } else if (str == "=") {
-            v.token = Token::ASSIGN;
+            v.token = ASSIGN;
 
             if (source[i+1] == '=') {
-                v.token = Token::LOG_OP;
+                v.token = LOG_OP;
                 str += source[++i];
                 c++;
             }
@@ -147,10 +150,10 @@ vector<TokenCap> lex(string source) {
         // The character is a number
         } else if (regex_match(str, regex("[0-9]"))) {
             // Default to integer
-            v.token = Token::INT;
+            v.token = INT;
             i++;
             c++;
-            while (((string)" \n(){};").find(source[i]) == string::npos && i < (int)source.size()) {
+            while (regex_match(str + source[i], regex("[0-9\\.]+")) && i < (int)source.size()) {
                 str += source[i];
                 i++;
                 c++;
@@ -163,66 +166,71 @@ vector<TokenCap> lex(string source) {
 
             // The number is a float
             if (regex_match(str, regex("[0-9]*\\.[0-9]+"))) {
-                v.token = Token::FLOAT;
+                v.token = FLOAT;
             }
 
         // The character is the start of a scoped block
         } else if (str == "{") {
-            v.token = Token::BLOCK_START;
+            v.token = BLOCK_START;
 
         // The character is the end of a scoped block
         } else if (str == "}") {
-            v.token = Token::BLOCK_END;
+            v.token = BLOCK_END;
 
         // Character is an arithmetic operater + - * / %
         } else if (regex_match(str, regex("\\+|-|\\*|/|%"))) {
-            v.token = Token::ARITH_OP;
+            v.token = ARITH_OP;
 
             // Arithmetic operater is followed by an =, or is ++ or -- therefore its an arithmetic assignment operator
             if (regex_match(str, regex("\\+|-|\\*|/")) && source[i+1] == '=') {
                 i++;
                 c++;
                 str += '=';
-                v.token = Token::ASSIGN_ARITH_OP;
+                v.token = ASSIGN_ARITH_OP;
 
             } else if (str == "+" && source[i+1] == '+') {
                 i++;
                 c++;
                 str += '+';
-                v.token = Token::ASSIGN_ARITH_OP;
+                v.token = ASSIGN_ARITH_OP;
 
             } else if (str == "-" && source[i+1] == '-') {
                 i++;
                 c++;
                 str += '-';
-                v.token = Token::ASSIGN_ARITH_OP;
+                v.token = ASSIGN_ARITH_OP;
 
             // Comments
             } else if (str == "/" && source[i+1] == '/') {
                 i++;
                 c++;
-                v.token = Token::COMMENT;
+                v.token = COMMENT;
                 while (((string)"\n").find(source[i]) == string::npos && i < (int)source.size()) {
                     str += source[i];
                     i++;
                     c++;
                 }
+                c = 0;
+                l++;
 
 
             } else if (str == "/" && source[i+1] == '*') {
-                v.token = Token::COMMENT;
+                v.token = COMMENT;
                 str += source[++i];
                 i++;
                 c+=2;
                 while (source[i] != '*') {
                     str += source[i++];
                     c++;
+                    if (source[i] == '\n') {
+                        c = 0;
+                        l++;
+                    }
                     if (source[i] == '*') {
                         str += source[i++];
                         c++;
                         if (source[i] == '/') {
-                            str += source[i++];
-                            c++;
+                            str += source[i];
                             break;
                         }
                     }
@@ -230,7 +238,7 @@ vector<TokenCap> lex(string source) {
 
             // Specials ->
             } else if (str == "-" && source[i+1] == '>') {
-                v.token = Token::SPEC;
+                v.token = SPEC;
                 i++;
                 c++;
                 str += '>';
@@ -238,26 +246,26 @@ vector<TokenCap> lex(string source) {
 
         // Bitwise values & ^ | ~
         } else if (regex_match(str, regex("&|\\^|\\||~"))) {
-            v.token = Token::BIT_OP;
+            v.token = BIT_OP;
 
             // Bitwise assign operator &= |= ^= ~=
             if (source[i+1] == '=') {
                 i++;
                 c++;
                 str += '=';
-                v.token = Token::ASSIGN_BIT_OP;
+                v.token = ASSIGN_BIT_OP;
 
             // && or || makes this a logical operator
             } else if((str == "&" && source[i+1] == '&') || (str == "|" && source[i+1] == '|')) {
                 i++;
                 c++;
                 str += source[i];
-                v.token = Token::LOG_OP;
+                v.token = LOG_OP;
             }
 
         // Logical operators < > <= >= != == !
         } else if (regex_match(str, regex("<|>|!"))) {
-            v.token = Token::LOG_OP;
+            v.token = LOG_OP;
 
             if (source[i+1] == '=') {
                 str += source[++i];
@@ -265,13 +273,13 @@ vector<TokenCap> lex(string source) {
 
             // If << or >> its a bit operator
             } else if ((str == "<" && source[i+1] == '<') || (str == ">" && source[i+1] == '>')) {
-                v.token = Token::BIT_OP;
+                v.token = BIT_OP;
                 str += source[++i];
                 c++;
 
                 // if <<= or >>= its a bit assign operator
                 if (source[i+1] == '=') {
-                    v.token = Token::ASSIGN_BIT_OP;
+                    v.token = ASSIGN_BIT_OP;
                     str += source[++i];
                     c++;
                 }
@@ -279,51 +287,47 @@ vector<TokenCap> lex(string source) {
 
         // Parenthesis start
         } else if (str == "(") {
-            v.token = Token::PAR_START;
+            v.token = PAR_START;
         
         // Parenthesis end
         } else if (str == ")") {
-            v.token = Token::PAR_END;
+            v.token = PAR_END;
 
         // Array start
         } else if (str == "[") {
-            v.token = Token::ARR_START;
+            v.token = ARR_START;
 
         // Array end
         } else if (str == "]") {
-            v.token = Token::ARR_END;
+            v.token = ARR_END;
 
         // Special operators
         } else if (regex_match(str, regex(":|,"))) {
-            v.token = Token::SPEC;
+            v.token = SPEC;
 
         // Strings
         } else if (str == "\"") {
-            v.token = Token::STRING;
+            v.token = STRING;
             i++;
             c++;
-            while (((string)"\"").find(source[i]) != string::npos && i < (int)source.size()) {
+            str = "";
+            while (source[i] != '"' && i < (int)source.size()) {
                 str += source[i];
                 i++;
                 c++;
             }
-            str += '"';
-            i++;
-            c++;
 
         // Character
         } else if (str == "'") {
-            v.token = Token::CHAR;
+            v.token = CHAR;
             i++;
             c++;
-            while (((string)"\"").find(source[i]) != string::npos && i < (int)source.size()) {
+            str = "";
+            while (source[i] != '\'' && i < (int)source.size()) {
                 str += source[i];
                 i++;
                 c++;
             }
-            str += '\'';
-            i++;
-            c++;
 
         }
 

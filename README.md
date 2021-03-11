@@ -1,5 +1,7 @@
 # Cypress
 
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Drew-S/fc71925be39f8f8ff74831f5cd603349/raw/tests.json)
+
 **Cypress** is real early design of a new programming language. This language is being developed not to accomplish any particular task, instead it is mostly an experiment in understanding further the process.
 
 Cypress is built in C++ as an embedded language first, there are plans to make the language an interpreted language once its completed to an acceptable stage with plenty of functionality. At which point the scripts can be interpreted using the binary.
@@ -14,3 +16,5 @@ Missing:
 - No tests are completed.
 
 The language is planned to be a Go-like language: functional with struct types and with methods attached like go, interfaces, multiple value returns, and error being a returned type rather than try and catch; a C-like language with strict type declaration for each variable in front `int a`; Rust-like in the use of short keyword names, `fn`, and much more.
+
+There are no plans to make this a compiled language (although out of curiosity I have looked into it, and may pursue that in the far flung future).
