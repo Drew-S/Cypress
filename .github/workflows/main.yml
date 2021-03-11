@@ -15,11 +15,9 @@ jobs:
             - name: dependencies
               run: apk add cppunit make g++
 
-            - name: build test
-              run: make test
-
-            - name: run test
+            - name: build and run test
               run: |
+                  make test
                   RES=`./test`
 
                   if [[ "$RES" == *"OK"* ]]; then
