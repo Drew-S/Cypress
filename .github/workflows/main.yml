@@ -23,6 +23,6 @@ jobs:
 
                   echo "$RESULTS"
 
-                  if [[ "$RESULTS" != *"ok"* ]]; then
+                  if [[ "$RESULTS" != *"OK"* ]]; then
                     exit 1
                   fi
