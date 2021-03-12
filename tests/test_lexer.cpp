@@ -37,7 +37,6 @@ void TestLexer::test_comments() {
                                 { STATEMENT_END, ";",                 1, 10 } } },
     };
     RUN_TEST(table);
-    CPPUNIT_ASSERT_MESSAGE("test", false);
 }
 
 void TestLexer::test_keywords() {
