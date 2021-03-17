@@ -29,8 +29,13 @@ public:
 
     //virtual void exec();
     //virtual bool is_valid();
-    virtual void print(int);
+    virtual string ToString(int);
     // virtual vector<NodeError> errors();
+
+    int collect_block(vector<TokenCap>*, int*, bool is_par); // collect .*{} or .*()
+    int collect_statement(vector<TokenCap>*, int*); // collect .*(\n|;|\)|})
+
+    void parse(Node*, vector<TokenCap>*, int*, int);
 };
 
 /*
@@ -44,7 +49,7 @@ public:
 [ ] |   +-- LogOpNode             && || < > <= >= == != !
 [ ] |   +-- FlowOpNode            if else if for switch                                 ...
 [-] +-- IdentNode                 _name Name _0123name Name012                          ...
-[ ] |   +-- DefineNode            struct <name> {...} interface <name> {...}            ...
+[ ] |   +-- DefineIdentNode       struct <name> {...} interface <name> {...}            ...
 [x] |   +-- AssignIdentNode       <type>? <ident> = <val> <end_statement>               ...
 [x] |   +-- FnNode                fn <method> <ident>(<params>) -> <returns> { ... }    ...
 [x] |   +-- CallFnNode            <ident>(<params>) <end_statement>                     ...
@@ -72,7 +77,7 @@ public:
 
     IdentNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -86,7 +91,7 @@ public:
 
     AssignIdentNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -122,7 +127,7 @@ public:
 
     FnNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -137,7 +142,7 @@ private:
 public:
     CallFnNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -149,7 +154,7 @@ class ReturnNode : public Node {
 public:
     ReturnNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -169,11 +174,68 @@ public:
  */
 class IntPrimitiveNode : public PrimitiveNode {
 public:
-    int val;
+    int val = 0;
 
     IntPrimitiveNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
+};
+
+/*
+ * CharPrimtitiveNode
+ *
+ * The character primitive node type.
+ */
+class CharPrimitiveNode : public PrimitiveNode {
+public:
+    bool set = false;
+    char val;
+
+    CharPrimitiveNode(vector<TokenCap>*, int, int);
+
+    string ToString(int);
+};
+
+/*
+ * StringPrimtitiveNode
+ *
+ * The string primitive node type.
+ */
+class StringPrimitiveNode : public PrimitiveNode {
+public:
+    string val = "";
+
+    StringPrimitiveNode(vector<TokenCap>*, int, int);
+
+    string ToString(int);
+};
+
+/*
+ * FloatPrimtitiveNode
+ *
+ * The float primitive node type.
+ */
+class FloatPrimitiveNode : public PrimitiveNode {
+public:
+    float val = 0.0;
+
+    FloatPrimitiveNode(vector<TokenCap>*, int, int);
+
+    string ToString(int);
+};
+
+/*
+ * BoolPrimtitiveNode
+ *
+ * The boolean primitive node type.
+ */
+class BoolPrimitiveNode : public PrimitiveNode {
+public:
+    bool val = false;
+
+    BoolPrimitiveNode(vector<TokenCap>*, int, int);
+
+    string ToString(int);
 };
 
 /*
@@ -189,7 +251,7 @@ public:
 
     OpNode(vector<TokenCap>*, int, int);
 
-    void print(int);
+    string ToString(int);
 };
 
 /*
@@ -203,20 +265,31 @@ public:
 };
 
 /*
- * collect
+ * Field
  *
- * Loops over the token list starting at int* until an end value `vector<Token>` is matched and the block value is
- *   0. The block value increases with the first Token, and decreases with the second Token. For capturing { ... {} }
- *                                                                                                         ^^^^^^^^^^
- *   as the entire block for passing to a Node.
+ * The fields of the struct/interface (like params, but with fn support)
  */
-int collect(vector<TokenCap>*, int*, Token, Token, vector<Token>);
+struct Field {
+    string type;
+    string name;
+    bool is_pointer = false;
+    vector<Param> params;
+};
 
 /*
- * process
+ * DefineIdentNode
  *
- * Recursive process the linear list of tokens into a collection (collect(...)) to pass to a specific Node for further
- *   processing.
+ * Definitions for structs and interfaces
  */
-void process(Node*, vector<TokenCap>*, int*, int);
+class DefineIdentNode : public IdentNode {
+private:
+    void process_block(vector<TokenCap>*, int, int);
+    string string_fields(int);
 
+public:
+    bool interface = false;
+    vector<Field> fields;
+    DefineIdentNode(vector<TokenCap>*, int, int);
+
+    string ToString(int);
+};

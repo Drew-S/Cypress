@@ -18,4 +18,5 @@ public:
     ~AST();
 
     void print();
+    string ToString();
 };

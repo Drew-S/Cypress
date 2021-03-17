@@ -1,12 +1,35 @@
 #include <iostream>
+#include <stdio.h>
 
 #include "node.hpp"
 
 // Helpers for Printing nodes
 // PRE adds spacing in the front for nesting based on the depth of the Node
-#define PRE for(int i = 0; i < d; i++) pre += "    "
-// BODY loops over the nodes body to print the child nodes
-#define BODY for(int i = 0; i < (int)this->body.size(); i++) this->body[i]->print(d+1)
+#define PRE for(int i = 0; i < d; i++) pre += "  "
+// BODY loops over the nodes body to ToString the child nodes
+#define BODY for(int i = 0; i < (int)this->body.size(); i++) pre += this->body[i]->ToString(d+1)
+
+// Shortcut for dereferencing token pointer
+#define T (*t)
+
+static bool IS_ASSIGN(vector<TokenCap> *t, int i) {
+    i++;
+    if (i >= t->size() || T[i].token == ASSIGN || T[i].token == STATEMENT_END || T[i].token == BLOCK_END)
+        return true;
+
+    if (T[i].token == ARITH_OP && T[i].val == "*")
+        i++;
+
+    if (i >= t->size() || T[i].token != IDENT)
+        return false;
+
+    i++;
+
+    if (i >= t->size() || T[i].token == ASSIGN || T[i].token == STATEMENT_END || T[i].token == BLOCK_END)
+        return true;
+
+    return false;
+}
 
 // TODO: Provide error handling. Invalid syntax should push errors to to a list.
 // TODO: Provide valid checks.
@@ -30,101 +53,6 @@ static int find_token(Token t, vector<Token> ts) {
     return -1;
 }
 
-/*
- * collect
- *
- * Loops over the token list `t` starting from `i` until an end value (token in `end`) is found or the
- *   depth counter is at 0, the depth counter starts at 1 and increases whenever the token `inc` is found
- *   or decresed whenever the token `dec` is found.
- */
-int collect(vector<TokenCap> *t, int *i, Token inc, Token dec, vector<Token> end) {
-    int d = 1;
-    bool f = false;
-    while(find_token((*t)[*i].token, end) == -1 && d > 0) {
-        if ((*t)[*i].token == inc) {
-            d++;
-            if (!f) {
-                f = true;
-                d--;
-            }
-        }
-
-        if ((*t)[*i].token == dec) {
-            d--;
-            if (d == 0)
-                break;
-        }
-
-        if (inc == INVALID && find_token((*t)[*i].token, end) > -1)
-            break;
-
-        (*i)++;
-    }
-    return *i;
-}
-
-/*
- * process
- *
- * Loops over the tokens `tokens` starting from `i` and stopping at `stop`. When token matches the start of a
- *   sequence it collects the statement and passes the collection to specific Node type to process, this node
- *   is appended into the current node `cur` body.
- */
-void process(Node *cur, vector<TokenCap> *tokens, int *i, int stop) {
-    while (*i < stop) {
-        switch((*tokens)[*i].token) {
-            // All of these should generally be ignored within this loop. Should be captured as part of other
-            // statements or simply ignored (STATEMENT_END == ('\n' || ';'), multiple newlines just ignore)
-            case INVALID:
-            case STATEMENT_END:
-            case BLOCK_END:
-            case PAR_END:
-                break;
-            case KEYWORD:
-                {
-                    // Collect and process entire: `fn [(<m> [*]<method>)] <name>([params...]) [-> returns...] {...}`
-                    // into FnNode
-                    if ((*tokens)[*i].val == "fn") {
-                        int s = *i;
-                        int e = collect(tokens, i, BLOCK_START, BLOCK_END, vector<Token>{BLOCK_END});
-                        cur->body.push_back(new FnNode(tokens, s, e));
-
-                    // Collect and process entire `return .*`
-                    // into ReturnNode
-                    } else if ((*tokens)[*i].val == "return") {
-                        int s = *i;
-                        int e = collect(tokens, i, INVALID, INVALID, vector<Token>{STATEMENT_END, BLOCK_END});
-                        cur->body.push_back(new ReturnNode(tokens, s, e));
-                    }
-                    break;
-                }
-            case IDENT:
-                {
-                    // If the next token after an identity is a `(` it is a function call
-                    // process: `<name>([params...])`
-                    // into a CallFnNode
-                    if ((*tokens)[*i + 1].token == PAR_START) {
-                        int s = *i;
-                        int e = collect(tokens, i, PAR_START, PAR_END, vector<Token>{STATEMENT_END, BLOCK_END, PAR_END});
-                        cur->body.push_back(new CallFnNode(tokens, s, e));
-                        break;
-                    }
-
-                    // Otherwise the ident token is treated as a type for another ident token
-                    // <IDENT> <IDENT> -> <TYPE> <IDENT>
-                }
-            case TYPE:
-                {
-                    int s = *i;
-                    int e = collect(tokens, i, INVALID, INVALID, vector<Token>{STATEMENT_END, BLOCK_END});
-                    cur->body.push_back(new AssignIdentNode(tokens, s, e));
-                    break;
-                }
-        }
-        (*i)++;
-    }
-}
-
 //======================================================================================================================
 // NODE
 //======================================================================================================================
@@ -139,15 +67,17 @@ void process(Node *cur, vector<TokenCap> *tokens, int *i, int stop) {
 Node::Node(vector<TokenCap> *t, int s, int e): tokens(t), start(s), end(e) {}
 
 /*
- * Node::print
+ * Node::ToString
  *
- * Loops over the body of the nodes printing the children.
+ * Loops over the body of the nodes ToStringing the children.
  *
- * Each inherited node prints similarly, its own format for its specific use and then its children. Comments for
+ * Each inherited node ToStrings similarly, its own format for its specific use and then its children. Comments for
  *   inherited nodes are omitted.
  */
-void Node::print(int d) {
+string Node::ToString(int d) {
+    string pre;
     BODY;
+    return pre;
 }
 
 /*
@@ -162,6 +92,145 @@ Node::~Node() {
     this->body.clear();
     if (this->parent != nullptr)
         delete this->parent;
+}
+
+/*
+ * Node::parse
+ *
+ * Parses the tokens from start to end into nodes
+ */
+
+void Node::parse(Node *parent, vector<TokenCap> *t, int *start, int end) {
+    for (int i = *start; i <= end; i++) {
+        if (i >= t->size())
+            return;
+        switch(T[i].token) {
+            case STATEMENT_END:
+            case PAR_END:
+            case BLOCK_END:
+                break;
+
+            case KEYWORD:
+                if (T[i].val == "fn") {
+                    int sub_start = i;
+                    int sub_end = Node::collect_block(t, &i, false);
+                    parent->body.push_back(new FnNode(t, sub_start, sub_end));
+
+                } else if (T[i].val == "struct" || T[i].val == "interface") {
+                    int sub_start = i;
+                    int sub_end = Node::collect_block(t, &i, false);
+                    parent->body.push_back(new DefineIdentNode(t, sub_start, sub_end));
+                }
+                break;
+            case IDENT:
+                if (!IS_ASSIGN(t, i)) {
+                    if (T[i+1].token == PAR_START) {
+                        int sub_start = i;
+                        int sub_end = Node::collect_block(t, &i, true);
+                        parent->body.push_back(new CallFnNode(t, sub_start, sub_end));
+
+                    } else if (T[i+1].token == ARITH_OP) {
+                        int sub_start = i;
+                        int sub_end = Node::collect_statement(t, &i);
+                        parent->body.push_back(new ArithOpNode(t, sub_start, sub_end));
+                    }
+                    break;
+                }
+            case TYPE:
+                if (IS_ASSIGN(t, i)) {
+                    int sub_start = i;
+                    int sub_end = Node::collect_statement(t, &i);
+                    parent->body.push_back(new AssignIdentNode(t, sub_start, sub_end));
+
+                } else if (T[i+1].token == PAR_START) {
+                    // Type cast: int(thing)
+                }
+                break;
+            case INT:
+                if (T[i+1].token == ARITH_OP) {
+                    parent->body.push_back(new ArithOpNode(t, i, i+2));
+                    i += 2;
+
+                } else {
+                    parent->body.push_back(new IntPrimitiveNode(t, i, i));
+                }
+                break;
+            case FLOAT:
+                parent->body.push_back(new FloatPrimitiveNode(t, i, i));
+                break;
+            case CHAR:
+                parent->body.push_back(new CharPrimitiveNode(t, i, i));
+                break;
+            case STRING:
+                parent->body.push_back(new StringPrimitiveNode(t, i, i));
+                break;
+            case BOOL:
+                parent->body.push_back(new BoolPrimitiveNode(t, i, i));
+                break;
+        }
+    }
+}
+
+/*
+ * Node::collect_block
+ *
+ * Get ending index for a block statement (is_par for collecting (...) instead of {...})
+ */
+int Node::collect_block(vector<TokenCap> *t, int* i, bool is_par) {
+    int d = 0;
+    if (is_par) {
+        while(*i < (int)(*t).size()) {
+            if ((*t)[*i].token == PAR_START) {
+                d++;
+
+            } else if ((*t)[*i].token == PAR_END) {
+                d--;
+                if (d <= 0)
+                    break;
+            }
+            (*i)++;
+        }
+    } else {
+        while(*i < (int)(*t).size()) {
+            if ((*t)[*i].token == BLOCK_START) {
+                d++;
+
+            } else if ((*t)[*i].token == BLOCK_END) {
+                d--;
+                if (d <= 0)
+                    break;
+            }
+            (*i)++;
+        }
+    }
+    return *i;
+}
+
+/*
+ * Node::collect_statement
+ *
+ * Get ending index for a line
+ */
+int Node::collect_statement(vector<TokenCap> *t, int* i) {
+    int pd = 0;
+    int bd = 0;
+    while (*i < (int)(*t).size()) {
+        if (T[*i].token == PAR_START)
+            pd++;
+        else if (T[*i].token == PAR_END)
+            pd--;
+
+        if (T[*i].token == BLOCK_START)
+            bd++;
+        else if (T[*i].token == BLOCK_END)
+            bd--;
+
+        if (pd <= 0 && bd <= 0 && (T[*i].token == STATEMENT_END || T[*i].token == PAR_END || T[*i].token == BLOCK_END))
+            break;
+
+        (*i)++;
+    }
+    return *i;
 }
 
 
@@ -191,12 +260,12 @@ ReturnNode::ReturnNode(vector<TokenCap> *t, int s, int e): Node(t, s, e) {
         }
     }
 }
-void ReturnNode::print(int d) {
+string ReturnNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- return:";
-    cout << pre << endl;
+    pre += "return:\n";
     BODY;
+    return pre;
 }
 
 
@@ -224,12 +293,12 @@ IdentNode::IdentNode(vector<TokenCap> *t, int s, int e): Node(t, s, e) {
     // Store reference name
     this->name = (*t)[i].val;
 }
-void IdentNode::print(int d) {
+string IdentNode::ToString(int d) {
     string pre;
     PRE;
-    pre += (this->is_pointer ? "+-- ident: *" : "+-- ident: ") + this->name;
-    cout << pre << endl;
+    pre += (this->is_pointer ? "ident: *" : "ident: ") + this->name + "\n";
     BODY;
+    return pre;
 }
 
 
@@ -255,40 +324,36 @@ AssignIdentNode::AssignIdentNode(vector<TokenCap> *t, int s, int e): IdentNode(t
 
     this->name = (*t)[i].val;
 
+    i++;
+
     // Does not follow with an =
-    if ((*t)[++i].token != ASSIGN) {} // ERROR
+    if ((*t)[i].token != ASSIGN) {
+        if (this->type == "int")
+            this->body.push_back(new IntPrimitiveNode(t, i-1, i-1));
 
+        else if (this->type == "float")
+            this->body.push_back(new FloatPrimitiveNode(t, i-1, i-1));
 
-    // Evaluate the right hand side
-    switch((*t)[++i].token) {
+        else if (this->type == "char")
+            this->body.push_back(new CharPrimitiveNode(t, i-1, i-1));
 
-        // Not a primtitive
-        case IDENT:
+        else if (this->type == "string")
+            this->body.push_back(new StringPrimitiveNode(t, i-1, i-1));
 
-            // Right hand side is a function
-            if((*t)[i+1].token == PAR_START) {
-                int s1 = i;
-                int e1 = collect(t, &i, PAR_START, PAR_END, vector<Token>{PAR_END});
-                this->body.push_back(new CallFnNode(t, s1, e1));
+        else if (this->type == "bool")
+            this->body.push_back(new BoolPrimitiveNode(t, i-1, i-1));
 
-            // Right hand side is a different identity
-            } else {
-                this->body.push_back(new IdentNode(t, i, i));
-            }
-            break;
-
-        // Is a primitive Integer
-        case INT:
-            this->body.push_back(new IntPrimitiveNode(t, i, i));
-            break;
+    } else {
+        i++;
+        Node::parse(this, t, &i, e);
     }
 }
-void AssignIdentNode::print(int d) {
+string AssignIdentNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- " + this->type + " " + this->name + " = :";
-    cout << pre << endl;
+    pre += "" + this->type + " " + this->name + " = :\n";
     BODY;
+    return pre;
 }
 
 
@@ -349,7 +414,7 @@ FnNode::FnNode(vector<TokenCap> *t, int s, int e): IdentNode(t, s, e) {
         i = this->proc_returns(t, ++i);
 
     // Process the body of a function
-    process(this, t, &i, e+1);
+    Node::parse(this, t, &i, e+1);
 }
 /*
  * FnNode::proc_params
@@ -403,10 +468,10 @@ int FnNode::proc_returns(vector<TokenCap> *t, int i) {
     }
     return ++i;
 }
-void FnNode::print(int d) {
+string FnNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- fn "
+    pre += "fn "
         + (this->is_method ? ("(" + this->method_par + (this->is_pointer ? "*" : "") + this->method_of + ")") : "")
         + " " + this->name + "(";
 
@@ -420,9 +485,9 @@ void FnNode::print(int d) {
         for (int i = 0; i < (int)this->returns.size(); i++)
             pre += this->returns[i] + ", ";
     }
-    pre += ":";
-    cout << pre << endl;
+    pre += ":\n";
     BODY;
+    return pre;
 }
 
 
@@ -434,15 +499,15 @@ void FnNode::print(int d) {
  *
  * Base class for handling operations * -, etc.
  *
- * OpNode::print handles printing for inherited Nodes.
+ * OpNode::ToString handles ToStringing for inherited Nodes.
  */
 OpNode::OpNode(vector<TokenCap> *t, int s, int e): Node(t, s, e) {}
-void OpNode::print(int d) {
+string OpNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- op: " + this->name + ":";
-    cout << pre << endl;
+    pre += "op: " + this->name + ":\n";
     BODY;
+    return pre;
 }
 
 
@@ -526,7 +591,7 @@ int CallFnNode::proc_params(vector<TokenCap>* t, int i) {
 
         if ((*t)[i+1].token == PAR_START) {
             int s = i;
-            int e = collect(t, &i, PAR_START, PAR_END, vector<Token>{PAR_END});
+            int e = Node::collect_block(t, &i, true);
             this->body.push_back(new CallFnNode(t, s, e));
 
         } else {
@@ -536,12 +601,12 @@ int CallFnNode::proc_params(vector<TokenCap>* t, int i) {
     }
     return i;
 }
-void CallFnNode::print(int d) {
+string CallFnNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- call: " + this->name + ":";
-    cout << pre << endl;
+    pre += "call: " + this->name + ":\n";
     BODY;
+    return pre;
 }
 
 
@@ -560,12 +625,258 @@ PrimitiveNode::PrimitiveNode(vector<TokenCap> *t, int s, int e): Node(t, s, e) {
  * Handles a single token for integer values. Simply a storage container for the value.
  */
 IntPrimitiveNode::IntPrimitiveNode(vector<TokenCap> *t, int s, int e): PrimitiveNode(t, s, e) {
-    if ((*t)[s].token != INT) {} // ERROR
-    this->val = stoi((*t)[s].val);
+    if ((*t)[s].token == IDENT) return;
+
+    if ((*t)[s].token == INT) {
+        this->val = stoi((*t)[s].val);
+
+    } else {} // ERROR
 }
-void IntPrimitiveNode::print(int d) {
+string IntPrimitiveNode::ToString(int d) {
     string pre;
     PRE;
-    pre += "+-- p_int: " + to_string(this->val);
-    cout << pre << endl;
+    char buf[64];
+    sprintf(buf, "%d", this->val);
+    pre += ((string)"p_int: ") + buf + "\n";
+    return pre;
+}
+
+
+//======================================================================================================================
+// FloatPrimitiveNode
+//======================================================================================================================
+/*
+ * FloatPrimitiveNode::FloatPrimitiveNode
+ *
+ * Handles a single token for float values. Simply a storage container for the value.
+ */
+FloatPrimitiveNode::FloatPrimitiveNode(vector<TokenCap> *t, int s, int e): PrimitiveNode(t, s, e) {
+    if ((*t)[s].token == IDENT) return;
+
+    if ((*t)[s].token == FLOAT) {
+        this->val = stof((*t)[s].val);
+
+    } else {} // ERROR
+}
+string FloatPrimitiveNode::ToString(int d) {
+    string pre;
+    PRE;
+    char buf[64];
+    sprintf(buf, "%0.8f", this->val);
+    pre += ((string)"p_float: ") + buf + "\n";
+    return pre;
+}
+
+
+//======================================================================================================================
+// CharPrimitiveNode
+//======================================================================================================================
+/*
+ * CharPrimitiveNode::CharPrimitiveNode
+ *
+ * Handles a single token for character values. Simply a storage container for the value.
+ */
+CharPrimitiveNode::CharPrimitiveNode(vector<TokenCap> *t, int s, int e): PrimitiveNode(t, s, e) {
+    if ((*t)[s].token == IDENT) return;
+
+    if ((*t)[s].token == CHAR) {
+        this->set = true;
+        this->val = (*t)[s].val[0];
+
+    } else {} // ERROR
+}
+string CharPrimitiveNode::ToString(int d) {
+    string pre;
+    PRE;
+    pre += ((string)"p_char: ") + (this->set ? (string)"" + this->val : (string)"") + "\n";
+    return pre;
+}
+
+
+//======================================================================================================================
+// StringPrimitiveNode
+//======================================================================================================================
+/*
+ * StringPrimitiveNode::StringPrimitiveNode
+ *
+ * Handles a single token for string values. Simply a storage container for the value.
+ */
+StringPrimitiveNode::StringPrimitiveNode(vector<TokenCap> *t, int s, int e): PrimitiveNode(t, s, e) {
+    if ((*t)[s].token == IDENT) return;
+
+    if ((*t)[s].token == STRING) {
+        this->val = (*t)[s].val;
+
+    } else {} // ERROR
+}
+string StringPrimitiveNode::ToString(int d) {
+    string pre;
+    PRE;
+    pre += "p_string: " + this->val + "\n";
+    return pre;
+}
+
+
+//======================================================================================================================
+// BoolPrimitiveNode
+//======================================================================================================================
+/*
+ * BoolPrimitiveNode::BoolPrimitiveNode
+ *
+ * Handles a single token for boolean values. Simply a storage container for the value.
+ */
+BoolPrimitiveNode::BoolPrimitiveNode(vector<TokenCap> *t, int s, int e): PrimitiveNode(t, s, e) {
+    if ((*t)[s].token == IDENT) return;
+
+    if ((*t)[s].token == BOOL) {
+        if ((*t)[s].val == "true")
+            this->val = true;
+        else
+            this->val = false;
+
+    } else {} // ERROR
+}
+string BoolPrimitiveNode::ToString(int d) {
+    string pre;
+    PRE;
+    pre += ((string)"p_bool: ") + (this->val ? "true\n" : "false\n");
+    return pre;
+}
+
+
+//======================================================================================================================
+// DefineIdentNode
+//======================================================================================================================
+/*
+ * DefineIdentNode::DefineIdentNode
+ *
+ * Stores a defined structure or interface for custom types
+ */
+DefineIdentNode::DefineIdentNode(vector<TokenCap> *t, int s, int e): IdentNode(t, s, e) {
+    int i = s;
+
+    if (T[i].token != KEYWORD) {} // ERROR
+
+    if (T[i].val == "interface")
+        this->interface = true;
+
+    if (T[++i].token != IDENT) {} // ERROR
+
+    this->name = T[i].val;
+
+    i++;
+    if (T[i].token != BLOCK_START) {} // ERROR
+
+    this->process_block(t, i, e);
+}
+/*
+ * DefineIdentNode::process_block
+ *
+ * Processes the block statement for interface/struct {...} into a set of fields
+ */
+void DefineIdentNode::process_block(vector<TokenCap> *t, int s, int e) {
+    int i = s;
+
+    if (T[i].token == BLOCK_START)
+        i++;
+
+    if (T[i].token == STATEMENT_END)
+        i++;
+
+    if (this->interface)
+        while (i < e) {
+            Field f;
+            if (T[i+1].token == PAR_START) {
+                if (T[i].token != IDENT) {} // ERROR
+                f.type = "void";
+
+            } else {
+                if (T[i].token != IDENT && T[i].token != TYPE) {} // ERROR
+                f.type = T[i].val;
+                i++;
+            }
+
+            if (T[i].token != IDENT) {} // ERROR
+
+            f.name = T[i].val;
+            i += 2;
+            while (T[i].token != PAR_END) {
+                Param p;
+                if (T[i].token != IDENT && T[i].token != TYPE) {} // ERROR
+                p.type = T[i].val;
+                i++;
+
+                if (T[i].token == ARITH_OP && T[i].val == "*") {
+                    p.is_pointer = true;
+                    i++;
+                }
+
+                if(T[i].token == SPEC) {
+                    if (T[i].val != ",") {} // ERROR
+                    i++;
+                }
+
+                f.params.push_back(p);
+            }
+            i += 2;
+            this->fields.push_back(f);
+        }
+    else
+        while (i < e) {
+            Field f;
+            if (T[i].token != IDENT && T[i].token != TYPE) {} // ERROR
+            f.type = T[i].val;
+            i++;
+            if (T[i].token == ARITH_OP && T[i].val == "*") {
+                f.is_pointer = true;
+                i++;
+            }
+            if (T[i].token != IDENT) {} // ERROR
+            f.name = T[i].val;
+            i += 2;
+            this->fields.push_back(f);
+        }
+}
+/*
+ * DefineIdentNode::string_fields
+ *
+ * lists each field under struct
+ */
+string DefineIdentNode::string_fields(int d) {
+    string pre;
+    for (int i = 0; i < (int)this->fields.size(); i++) {
+        PRE;
+        pre += this->fields[i].type + " ";
+        if (this->fields[i].is_pointer)
+            pre += "*";
+
+        pre += this->fields[i].name;
+        if (this->interface) {
+            pre += "(";
+            if (this->fields[i].params.size() > 0) {
+                for (int j = 0; j < (int)this->fields[i].params.size(); j++) {
+                    pre += this->fields[i].params[j].type;
+                    if (this->fields[i].params[j].is_pointer)
+                        pre += "*";
+                    pre += this->fields[i].params[j].name + ", ";
+                }
+            }
+            pre += ")";
+        }
+        pre += "\n";
+    }
+    return pre;
+}
+string DefineIdentNode::ToString(int d) {
+    string pre;
+    PRE;
+    if (this->interface)
+        pre += "interface ";
+
+    else
+        pre += "struct ";
+
+    pre += this->name + ":\n";
+    pre += this->string_fields(d+1);
+    return pre;
 }

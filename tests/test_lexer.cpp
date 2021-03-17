@@ -1,7 +1,8 @@
 #include "test_lexer.hpp"
 
-#include <iostream>
 #include <regex>
+#include <vector>
+#include <string>
 
 #include "../src/lexer.hpp"
 

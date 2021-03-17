@@ -8,13 +8,16 @@ using namespace std;
 AST::AST(vector<TokenCap> t): tokens(t) {
     this->root = new Node(&this->tokens, 0, this->tokens.size());
     int i = 0;
-    process(this->root, &this->tokens, &i, this->tokens.size());
+    this->root->parse(this->root, &this->tokens, &i, this->tokens.size());
 }
 AST::~AST() {
     delete this->root;
 }
 
 void AST::print() {
-    cout << "ROOT" << endl;
-    this->root->print(0);
+    cout << this->ToString();
+}
+
+string AST::ToString() {
+    return "ROOT\n" + this->root->ToString(0);
 }

@@ -1,9 +1,6 @@
 #include <cppunit/TestCase.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include <vector>
-#include <string>
-
 #include "../src/token.hpp"
 
 using namespace std;

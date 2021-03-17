@@ -3,8 +3,10 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "test_lexer.hpp"
+#include "test_parser.hpp"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestLexer);
+CPPUNIT_TEST_SUITE_REGISTRATION(TestParser);
 
 int main() {
     CppUnit::TextUi::TestRunner runner;
